@@ -1,1 +1,101 @@
-https://raw.githubusercontent.com/daxuewuyu8-dotcom/kuwo/main/copy.html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>智能识别版 final.js 一键复制</title>
+<style>
+body { font-family: Arial, sans-serif; background:#f7f7f7; padding:20px; }
+h1 { text-align:center; color:#333; }
+.container { max-width:800px; margin:0 auto; background:#fff; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1);}
+textarea { width:100%; height:300px; margin-top:10px; padding:10px; font-family:monospace; font-size:14px; border:1px solid #ccc; border-radius:4px; resize:none; }
+button { margin-top:10px; padding:10px 20px; font-size:16px; border:none; border-radius:4px; background:#4CAF50; color:#fff; cursor:pointer; }
+button:hover { background:#45a049; }
+p { margin-top:10px; font-size:14px; color:#555; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>智能识别版 final.js 一键复制</h1>
+
+<p>Raw URL（直接复制到 Loon script-path 使用）:</p>
+<textarea id="rawurl" readonly>https://raw.githubusercontent.com/daxuewuyu8-dotcom/adblock-rules/main/dist/final.js</textarea>
+<button onclick="copyText('rawurl')">复制 Raw URL</button>
+
+<p>完整脚本内容（复制到 final.js 文件）:</p>
+<textarea id="scriptcontent" readonly>
+/******** 智能识别版 final.js ********/
+
+let body = $response.body;
+let url = $request.url;
+
+// 根据请求 URL 判断 App
+let app = "";
+if (/kuwo/.test(url)) app = "kuwo";
+else if (/music\.163/.test(url)) app = "netease";
+else if (/qqmusic/.test(url)) app = "qqmusic";
+
+// 广告规则和 VIP 字段
+const adRules = {
+    "kuwo": ["ad","ads","advert","banner","splash","promotion"],
+    "netease": ["ad","ads","promotion","banner"],
+    "qqmusic": ["ad","ads","banner","promotion"]
+};
+const vipRules = {
+    "kuwo": ["vip","isVip","vipLevel","vipType"],
+    "netease": ["vip","isVip","vipLevel"],
+    "qqmusic": ["vip","isVip","vipLevel","vipType"]
+};
+
+function safeParse(str){ try{return JSON.parse(str);}catch{return null;} }
+function safeStringify(obj){ try{return JSON.stringify(obj);}catch{return "";} }
+
+function process(obj){
+    if(!obj || typeof obj!=="object") return;
+    let ads = adRules[app] || [];
+    let vips = vipRules[app] || [];
+    for(let k in obj){
+        let lower = k.toLowerCase();
+        if(ads.some(x=>lower.includes(x))) delete obj[k];
+        if(vips.some(x=>lower.includes(x))) obj[k] = true;
+        if(typeof obj[k]==="object") process(obj[k]);
+    }
+}
+
+let obj = safeParse(body);
+if(obj){
+    process(obj);
+
+    // 用户接口加 VIP 标识
+    if(/user|profile/.test(url)) {
+        obj.isVip = true;
+        obj.vip = 1;
+    }
+
+    // 广告接口直接清空
+    if(/advert|ad/.test(url)) obj={};
+
+    body = safeStringify(obj);
+}
+
+$done({body});
+</textarea>
+<button onclick="copyText('scriptcontent')">复制完整脚本</button>
+
+<p>使用方法：</p>
+<ul>
+<li>Raw URL → 直接在 Loon Script 中填写 <code>script-path</code></li>
+<li>完整脚本 → 复制到仓库 <code>dist/final.js</code></li>
+</ul>
+</div>
+
+<script>
+function copyText(id){
+    const textarea = document.getElementById(id);
+    textarea.select();
+    textarea.setSelectionRange(0, textarea.value.length);
+    document.execCommand("copy");
+    alert("已复制到剪贴板!");
+}
+</script>
+</body>
+</html>
